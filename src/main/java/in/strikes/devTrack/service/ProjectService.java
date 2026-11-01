@@ -15,6 +15,8 @@ import in.strikes.devTrack.dto.ProjectTechnologyResponse;
 import in.strikes.devTrack.entity.Project;
 import in.strikes.devTrack.entity.ProjectTechnology;
 import in.strikes.devTrack.entity.ProjectTechnology.TechnologyType;
+import in.strikes.devTrack.entity.ProjectMembership;
+import in.strikes.devTrack.repository.ProjectMembershipRepository;
 import in.strikes.devTrack.entity.User;
 import in.strikes.devTrack.exception.ResourceNotFoundException;
 import in.strikes.devTrack.repository.ProjectRepository;
@@ -25,14 +27,17 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final ProjectMembershipRepository membershipRepository;
 
     public ProjectService(
-            ProjectRepository projectRepository,
-            UserRepository userRepository) {
-        this.projectRepository = projectRepository;
-        this.userRepository = userRepository;
-    }
+        ProjectRepository projectRepository,
+        UserRepository userRepository,
+        ProjectMembershipRepository membershipRepository) {
 
+    this.projectRepository = projectRepository;
+    this.userRepository = userRepository;
+    this.membershipRepository = membershipRepository;
+}
     @Transactional
     public ProjectResponse createProject(CreateProjectRequest request) {
 
@@ -80,7 +85,16 @@ public class ProjectService {
 
         Project savedProject = projectRepository.save(project);
 
-        return mapToResponse(savedProject);
+// Automatically add the project owner as an OWNER member
+ProjectMembership ownerMembership = new ProjectMembership(
+        savedProject,
+        owner,
+        ProjectMembership.Role.OWNER
+);
+
+membershipRepository.save(ownerMembership);
+
+return mapToResponse(savedProject);
     }
 
     @Transactional(readOnly = true)
