@@ -116,4 +116,40 @@ Project project = projectRepository.findById(projectId)
                 ))
                 .toList();
     }
+
+    @Transactional
+public void removeMember(Long projectId, Long userId) {
+
+    Authentication authentication =
+            SecurityContextHolder.getContext().getAuthentication();
+
+    User currentUser = userRepository.findByEmail(
+            authentication.getName()
+    ).orElseThrow(() ->
+            new ResourceNotFoundException("Authenticated user not found"));
+
+    Project project = projectRepository.findById(projectId)
+            .orElseThrow(() ->
+                    new ResourceNotFoundException("Project not found"));
+
+    // Only the project owner can remove members
+    if (!project.getOwner().getId().equals(currentUser.getId())) {
+        throw new ForbiddenException(
+                "Only the project owner can remove members");
+    }
+
+    // Prevent owner from removing themselves
+    if (project.getOwner().getId().equals(userId)) {
+        throw new ForbiddenException(
+                "Project owner cannot be removed");
+    }
+
+    ProjectMembership membership = membershipRepository
+            .findByProjectIdAndUserId(projectId, userId)
+            .orElseThrow(() ->
+                    new ResourceNotFoundException(
+                            "Project member not found"));
+
+    membershipRepository.delete(membership);
+}
 }

@@ -42,4 +42,14 @@ public class ProjectMembershipController {
         return ResponseEntity.ok(
                 membershipService.getMembers(projectId));
     }
+
+    @DeleteMapping("/{userId}")
+public ResponseEntity<Void> removeMember(
+        @PathVariable Long projectId,
+        @PathVariable Long userId) {
+
+    membershipService.removeMember(projectId, userId);
+
+    return ResponseEntity.noContent().build();
+}
 }
