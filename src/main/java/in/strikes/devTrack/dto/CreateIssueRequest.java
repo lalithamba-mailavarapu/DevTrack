@@ -13,6 +13,8 @@ public class CreateIssueRequest {
     @Size(max = 5000, message = "Description cannot exceed 5000 characters")
     private String description;
 
+    private String label;
+
     public CreateIssueRequest() {
     }
 
@@ -30,5 +32,13 @@ public class CreateIssueRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 }

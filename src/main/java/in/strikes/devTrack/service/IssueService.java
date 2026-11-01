@@ -89,24 +89,42 @@ public class IssueService {
         issue.setStatus(Issue.Status.OPEN);
         issue.setPriority(Issue.Priority.MEDIUM);
 
+        if (request.getLabel() != null && !request.getLabel().isBlank()) {
+    try {
+        issue.setLabel(
+            Issue.Label.valueOf(request.getLabel().trim().toUpperCase())
+        );
+    } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid issue label");
+    }
+}
+
         // 5. Save the issue.
         Issue savedIssue = issueRepository.save(issue);
 
         // 6. Return a DTO rather than exposing the entity.
-        return new IssueResponse(
-                savedIssue.getId(),
-                savedIssue.getTitle(),
-                savedIssue.getDescription(),
-                savedIssue.getStatus().name(),
-                savedIssue.getPriority().name(),
-                savedIssue.getProject().getId(),
-                savedIssue.getReporter().getId(),
-                savedIssue.getAssignee() == null
-                        ? null
-                        : savedIssue.getAssignee().getId(),
-                savedIssue.getCreatedAt(),
-                savedIssue.getUpdatedAt()
-        );
+       IssueResponse response = new IssueResponse(
+        savedIssue.getId(),
+        savedIssue.getTitle(),
+        savedIssue.getDescription(),
+        savedIssue.getStatus().name(),
+        savedIssue.getPriority().name(),
+        savedIssue.getProject().getId(),
+        savedIssue.getReporter().getId(),
+        savedIssue.getAssignee() == null
+                ? null
+                : savedIssue.getAssignee().getId(),
+        savedIssue.getCreatedAt(),
+        savedIssue.getUpdatedAt()
+);
+
+response.setLabel(
+        savedIssue.getLabel() == null
+                ? null
+                : savedIssue.getLabel().name()
+);
+
+return response;
     }
 
     
@@ -146,19 +164,28 @@ public class IssueService {
                 page, size, Sort.by("createdAt").descending());
 
         return issueRepository.findByProjectId(projectId, pageable)
-                .map(issue -> new IssueResponse(
-                        issue.getId(),
-                        issue.getTitle(),
-                        issue.getDescription(),
-                        issue.getStatus().name(),
-                        issue.getPriority().name(),
-                        issue.getProject().getId(),
-                        issue.getReporter().getId(),
-                        issue.getAssignee() == null
-                                ? null : issue.getAssignee().getId(),
-                        issue.getCreatedAt(),
-                        issue.getUpdatedAt()
-                ));
+        .map(issue -> {
+            IssueResponse response = new IssueResponse(
+                    issue.getId(),
+                    issue.getTitle(),
+                    issue.getDescription(),
+                    issue.getStatus().name(),
+                    issue.getPriority().name(),
+                    issue.getProject().getId(),
+                    issue.getReporter().getId(),
+                    issue.getAssignee() == null
+                            ? null : issue.getAssignee().getId(),
+                    issue.getCreatedAt(),
+                    issue.getUpdatedAt()
+            );
+
+            response.setLabel(
+                    issue.getLabel() == null
+                            ? null : issue.getLabel().name()
+            );
+
+            return response;
+        });
     }
     
     @Transactional(readOnly = true)
@@ -216,19 +243,28 @@ public class IssueService {
             issues = issueRepository.findByProjectId(projectId, pageable);
         }
 
-        return issues.map(issue -> new IssueResponse(
-                issue.getId(),
-                issue.getTitle(),
-                issue.getDescription(),
-                issue.getStatus().name(),
-                issue.getPriority().name(),
-                issue.getProject().getId(),
-                issue.getReporter().getId(),
-                issue.getAssignee() == null
-                        ? null : issue.getAssignee().getId(),
-                issue.getCreatedAt(),
-                issue.getUpdatedAt()
-        ));
+        return issues.map(issue -> {
+    IssueResponse response = new IssueResponse(
+            issue.getId(),
+            issue.getTitle(),
+            issue.getDescription(),
+            issue.getStatus().name(),
+            issue.getPriority().name(),
+            issue.getProject().getId(),
+            issue.getReporter().getId(),
+            issue.getAssignee() == null
+                    ? null : issue.getAssignee().getId(),
+            issue.getCreatedAt(),
+            issue.getUpdatedAt()
+    );
+
+    response.setLabel(
+            issue.getLabel() == null
+                    ? null : issue.getLabel().name()
+    );
+
+    return response;
+});
     }
     
 @Transactional
@@ -288,18 +324,25 @@ public IssueResponse assignIssue(
 
     Issue saved = issueRepository.save(issue);
 
-    return new IssueResponse(
-            saved.getId(),
-            saved.getTitle(),
-            saved.getDescription(),
-            saved.getStatus().name(),
-            saved.getPriority().name(),
-            saved.getProject().getId(),
-            saved.getReporter().getId(),
-            saved.getAssignee().getId(),
-            saved.getCreatedAt(),
-            saved.getUpdatedAt()
-    );
+IssueResponse response = new IssueResponse(
+        saved.getId(),
+        saved.getTitle(),
+        saved.getDescription(),
+        saved.getStatus().name(),
+        saved.getPriority().name(),
+        saved.getProject().getId(),
+        saved.getReporter().getId(),
+        saved.getAssignee().getId(),
+        saved.getCreatedAt(),
+        saved.getUpdatedAt()
+);
+
+response.setLabel(
+        saved.getLabel() == null
+                ? null : saved.getLabel().name()
+);
+
+return response;
 }
 
 
@@ -372,21 +415,28 @@ public IssueResponse updateIssue(
         }
     }
 
-    Issue saved = issueRepository.save(issue);
+   Issue saved = issueRepository.save(issue);
 
-    return new IssueResponse(
-            saved.getId(),
-            saved.getTitle(),
-            saved.getDescription(),
-            saved.getStatus().name(),
-            saved.getPriority().name(),
-            saved.getProject().getId(),
-            saved.getReporter().getId(),
-            saved.getAssignee() == null
-                    ? null : saved.getAssignee().getId(),
-            saved.getCreatedAt(),
-            saved.getUpdatedAt()
-    );
+IssueResponse response = new IssueResponse(
+        saved.getId(),
+        saved.getTitle(),
+        saved.getDescription(),
+        saved.getStatus().name(),
+        saved.getPriority().name(),
+        saved.getProject().getId(),
+        saved.getReporter().getId(),
+        saved.getAssignee() == null
+                ? null : saved.getAssignee().getId(),
+        saved.getCreatedAt(),
+        saved.getUpdatedAt()
+);
+
+response.setLabel(
+        saved.getLabel() == null
+                ? null : saved.getLabel().name()
+);
+
+return response;
 }
 
 }

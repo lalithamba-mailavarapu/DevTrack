@@ -34,6 +34,14 @@ public class Issue {
         HIGH
     }
 
+    public enum Label {
+    BUG,
+    FEATURE,
+    ENHANCEMENT,
+    DOCUMENTATION,
+    TASK
+}
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +61,10 @@ public class Issue {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Priority priority = Priority.MEDIUM;
+    
+    @Enumerated(EnumType.STRING)
+@Column(length = 30)
+private Label label;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "project_id", nullable = false)
@@ -134,6 +146,14 @@ public class Issue {
     public void setPriority(Priority priority) {
         this.priority = priority;
     }
+
+    public Label getLabel() {
+    return label;
+}
+
+public void setLabel(Label label) {
+    this.label = label;
+}
 
     public Project getProject() {
         return project;

@@ -1,3 +1,4 @@
+
 package in.strikes.devTrack.entity;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,10 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
 
 @Entity
 @Table(name = "projects")
@@ -31,12 +36,28 @@ public class Project {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "primary_language", length = 50)
+    private String primaryLanguage;
+
+    @Column(length = 50)
+    private String category;
+
+    @Column(name = "github_repository_url", length = 500)
+    private String githubRepositoryUrl;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(
+    mappedBy = "project",
+    cascade = CascadeType.ALL,
+    orphanRemoval = true
+)
+private List<ProjectTechnology> technologies = new ArrayList<>();
 
     public Project() {
     }
@@ -72,6 +93,30 @@ public class Project {
         this.description = description;
     }
 
+    public String getPrimaryLanguage() {
+        return primaryLanguage;
+    }
+
+    public void setPrimaryLanguage(String primaryLanguage) {
+        this.primaryLanguage = primaryLanguage;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getGithubRepositoryUrl() {
+        return githubRepositoryUrl;
+    }
+
+    public void setGithubRepositoryUrl(String githubRepositoryUrl) {
+        this.githubRepositoryUrl = githubRepositoryUrl;
+    }
+
     public User getOwner() {
         return owner;
     }
@@ -83,4 +128,18 @@ public class Project {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public List<ProjectTechnology> getTechnologies() {
+    return technologies;
+}
+
+public void addTechnology(ProjectTechnology technology) {
+    technologies.add(technology);
+    technology.setProject(this);
+}
+
+public void removeTechnology(ProjectTechnology technology) {
+    technologies.remove(technology);
+    technology.setProject(null);
+}
 }

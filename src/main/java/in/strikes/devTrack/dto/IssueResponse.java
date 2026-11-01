@@ -10,6 +10,7 @@ public class IssueResponse {
     private String description;
     private String status;
     private String priority;
+    private String label;
     private Long projectId;
     private Long reporterId;
     private Long assigneeId;
@@ -59,6 +60,14 @@ public class IssueResponse {
     public String getPriority() {
         return priority;
     }
+
+    public String getLabel() {
+    return label;
+}
+
+public void setLabel(String label) {
+    this.label = label;
+}
 
     public Long getProjectId() {
         return projectId;
