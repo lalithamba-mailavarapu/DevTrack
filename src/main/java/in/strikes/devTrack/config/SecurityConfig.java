@@ -60,10 +60,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:3000",
-            "https://devtrack-frontend-i5ze.onrender.com"
-        ));
+        configuration.setAllowedOrigins(
+    List.of(
+        "http://localhost:3000",
+        "https://devtrack-frontend-i5ze.onrender.com"
+    )
+);
 
         configuration.setAllowedMethods(List.of(
             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
