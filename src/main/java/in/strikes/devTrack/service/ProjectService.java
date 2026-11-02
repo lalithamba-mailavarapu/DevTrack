@@ -13,12 +13,14 @@ import in.strikes.devTrack.dto.ProjectResponse;
 import in.strikes.devTrack.dto.ProjectTechnologyRequest;
 import in.strikes.devTrack.dto.ProjectTechnologyResponse;
 import in.strikes.devTrack.entity.Project;
+import in.strikes.devTrack.entity.ProjectMembership;
 import in.strikes.devTrack.entity.ProjectTechnology;
 import in.strikes.devTrack.entity.ProjectTechnology.TechnologyType;
-import in.strikes.devTrack.entity.ProjectMembership;
-import in.strikes.devTrack.repository.ProjectMembershipRepository;
 import in.strikes.devTrack.entity.User;
+import in.strikes.devTrack.exception.ForbiddenException;
 import in.strikes.devTrack.exception.ResourceNotFoundException;
+import in.strikes.devTrack.repository.IssueRepository;
+import in.strikes.devTrack.repository.ProjectMembershipRepository;
 import in.strikes.devTrack.repository.ProjectRepository;
 import in.strikes.devTrack.repository.UserRepository;
 
@@ -28,15 +30,18 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMembershipRepository membershipRepository;
+    private final IssueRepository issueRepository;
 
     public ProjectService(
         ProjectRepository projectRepository,
         UserRepository userRepository,
-        ProjectMembershipRepository membershipRepository) {
+        ProjectMembershipRepository membershipRepository,
+        IssueRepository issueRepository) {
 
     this.projectRepository = projectRepository;
     this.userRepository = userRepository;
     this.membershipRepository = membershipRepository;
+    this.issueRepository = issueRepository;
 }
     @Transactional
     public ProjectResponse createProject(CreateProjectRequest request) {
@@ -113,6 +118,34 @@ return mapToResponse(savedProject);
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+
+    @Transactional
+    public void deleteProject(Long projectId) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Authenticated user not found"));
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Project not found"));
+
+        if (!project.getOwner().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException(
+                    "Only the project owner can delete this project");
+        }
+
+        // Remove dependent rows before deleting the project to satisfy foreign keys.
+        issueRepository.deleteByProjectId(projectId);
+        membershipRepository.deleteByProjectId(projectId);
+
+        // ProjectTechnology rows are removed by Project's cascade + orphan mapping.
+        projectRepository.delete(project);
     }
 
     private ProjectResponse mapToResponse(Project project) {

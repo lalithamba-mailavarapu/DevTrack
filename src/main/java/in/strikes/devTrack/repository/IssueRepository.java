@@ -11,6 +11,8 @@ import in.strikes.devTrack.entity.Issue;
 
 
 public interface IssueRepository extends JpaRepository<Issue, Long> {
+    long deleteByProjectId(Long projectId);
+
     List<Issue> findByProjectId(Long projectId);
 
     Page<Issue> findByProjectId(Long projectId, Pageable pageable);
