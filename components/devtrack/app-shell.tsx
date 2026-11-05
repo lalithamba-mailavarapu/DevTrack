@@ -131,7 +131,7 @@ export function AppShell({ apiBaseUrlConfigured }: AppShellProps) {
 
         <main className="mx-auto flex w-full max-w-[1480px] flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           {activeSection === 'overview' ? (
-            <DashboardView apiBaseUrlConfigured={apiBaseUrlConfigured} onNavigate={navigateTo} />
+            <DashboardView onNavigate={navigateTo} />
           ) : (
             <SectionView section={activeSection} onNavigate={navigateTo} />
           )}

@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, ArrowRight, BarChart3, CheckCircle2, CircleDot,
-  FolderKanban, RefreshCw, ShieldCheck, Timer, type LucideIcon,
+  FolderKanban, RefreshCw, Timer, type LucideIcon,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { getProjects, type ProjectResponse } from '@/lib/api/projects'
@@ -14,7 +14,6 @@ import { getIssues, type IssueResponse, type IssueStatus } from '@/lib/api/issue
 import type { AppSection } from './navigation'
 
 type DashboardViewProps = {
-  apiBaseUrlConfigured: boolean
   onNavigate: (section: AppSection) => void
 }
 
@@ -27,7 +26,7 @@ const metricDefinitions: { key: keyof Metrics; label: string; icon: LucideIcon }
   { key: 'closed', label: 'Closed issues', icon: CheckCircle2 },
 ]
 
-export function DashboardView({ apiBaseUrlConfigured, onNavigate }: DashboardViewProps) {
+export function DashboardView({ onNavigate }: DashboardViewProps) {
   const [projects, setProjects] = useState<ProjectResponse[]>([])
   const [metrics, setMetrics] = useState<Metrics>({ projects: 0, open: 0, inProgress: 0, closed: 0 })
   const [loading, setLoading] = useState(true)
@@ -119,26 +118,6 @@ export function DashboardView({ apiBaseUrlConfigured, onNavigate }: DashboardVie
           </Button>
         </div>
       </section>
-
-      <Card className="overflow-hidden border-primary/15 shadow-sm">
-        <CardContent className="flex flex-col gap-4 border-l-[3px] border-l-primary bg-gradient-to-r from-primary/[0.035] to-transparent p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div className="flex items-start gap-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><ShieldCheck aria-hidden="true" /></span>
-            <div className="flex flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-semibold">Backend connection</h2>
-                <Badge variant="outline">{apiBaseUrlConfigured ? 'URL configured' : 'Configuration required'}</Badge>
-              </div>
-              <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                {apiBaseUrlConfigured
-                  ? 'Dashboard metrics are calculated from your authenticated project and issue API responses.'
-                  : 'Set NEXT_PUBLIC_API_BASE_URL to your deployed Spring Boot service.'}
-              </p>
-            </div>
-          </div>
-          <Badge variant="secondary" className="w-fit shrink-0">Live API data</Badge>
-        </CardContent>
-      </Card>
 
       {error && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>}
       {!issueDataComplete && !loading && <div role="status" className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">Some project issue lists could not be loaded. Issue totals are partial; check project access or refresh.</div>}
