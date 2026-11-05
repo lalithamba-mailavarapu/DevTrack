@@ -10,6 +10,7 @@ import { getApiErrorMessage } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
+  console.log("LOGIN PAGE LOADED");
   const router = useRouter();
   const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
@@ -36,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-slate-900 [color-scheme:light]">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <h1 className="text-3xl font-bold text-slate-900">Welcome back</h1>
         <p className="mt-2 text-slate-500">

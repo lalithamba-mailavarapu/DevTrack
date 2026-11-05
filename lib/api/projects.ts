@@ -54,3 +54,7 @@ export async function createProject(
   )
   return response.data
 }
+
+export async function deleteProject(projectId: number): Promise<void> {
+  await apiClient.delete(`/api/projects/${projectId}`)
+}

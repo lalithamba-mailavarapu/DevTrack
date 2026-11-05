@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -27,7 +28,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  colorScheme: 'light',
+  colorScheme: 'light dark',
   themeColor: '#f7f8fc',
 }
 
@@ -39,12 +40,14 @@ export default function RootLayout({
   return (
   <html lang="en">
     <body className="antialiased">
-      <AuthProvider>
-        {children}
-      </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      {children}
+    </AuthProvider>
+  </ThemeProvider>
 
-      <Toaster position="top-right" richColors closeButton />
-    </body>
+  <Toaster position="top-right" richColors closeButton />
+</body>
   </html>
 );
 }

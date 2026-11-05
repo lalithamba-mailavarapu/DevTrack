@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState, type LucideIcon } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, ArrowRight, BarChart3, CheckCircle2, CircleDot,
-  FolderKanban, RefreshCw, ShieldCheck, Timer,
+  FolderKanban, RefreshCw, ShieldCheck, Timer, type LucideIcon,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

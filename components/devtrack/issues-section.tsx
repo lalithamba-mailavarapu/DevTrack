@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { ArrowLeft, Plus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +33,11 @@ export function IssuesSection({ onNavigate }: { onNavigate: (section: AppSection
   const [description, setDescription] = useState('')
   const [label, setLabel] = useState<IssueLabel>('TASK')
   const [error, setError] = useState<string | null>(null)
+  const [editingIssueId, setEditingIssueId] = useState<number | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editStatus, setEditStatus] = useState<IssueStatus>('OPEN')
+  const [editPriority, setEditPriority] = useState<IssuePriority>('MEDIUM')
 
   const loadProjects = useCallback(async () => {
     try {
@@ -78,6 +83,36 @@ export function IssuesSection({ onNavigate }: { onNavigate: (section: AppSection
       await updateIssue(Number(projectId), issue.id, patch)
       await loadIssues()
     } catch (err) { setError(getApiErrorMessage(err)) }
+  }
+
+  function startEditing(issue: IssueResponse) {
+    setEditingIssueId(issue.id)
+    setEditTitle(issue.title)
+    setEditDescription(issue.description || '')
+    setEditStatus(issue.status)
+    setEditPriority(issue.priority)
+    setError(null)
+  }
+
+  async function saveIssueEdit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!projectId || editingIssueId === null) return
+    setSaving(true)
+    setError(null)
+    try {
+      await updateIssue(Number(projectId), editingIssueId, {
+        title: editTitle.trim(),
+        description: editDescription.trim(),
+        status: editStatus,
+        priority: editPriority,
+      })
+      setEditingIssueId(null)
+      await loadIssues()
+    } catch (err) {
+      setError(getApiErrorMessage(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -132,12 +167,44 @@ export function IssuesSection({ onNavigate }: { onNavigate: (section: AppSection
       {loading ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Loading issues...</CardContent></Card>
       : issues.length === 0 ? <Card><CardContent className="p-10 text-center"><h2 className="font-semibold">No issues found</h2><p className="mt-1 text-sm text-muted-foreground">Choose a project, adjust filters, or create an issue.</p></CardContent></Card>
       : <div className="grid gap-3">{issues.map((issue) => <Card key={issue.id}><CardContent className="flex flex-col gap-3 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-semibold">{issue.title}</h3><p className="mt-1 text-sm text-muted-foreground">{issue.description || 'No description'} </p></div><Badge variant="outline">#{issue.id}</Badge></div>
-        <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{issue.label || 'UNLABELLED'}</Badge><span className="text-xs text-muted-foreground">Reporter #{issue.reporterId}</span>{issue.assigneeId && <span className="text-xs text-muted-foreground">Assignee #{issue.assigneeId}</span>}</div>
-        <div className="flex flex-wrap gap-3">
-          <label className="grid gap-1 text-xs text-muted-foreground">Status<select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={issue.status} onChange={(e) => void changeIssue(issue, { status: e.target.value as IssueStatus })}>{statuses.map((v) => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select></label>
-          <label className="grid gap-1 text-xs text-muted-foreground">Priority<select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={issue.priority} onChange={(e) => void changeIssue(issue, { priority: e.target.value as IssuePriority })}>{priorities.map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
-        </div>
+        {editingIssueId === issue.id ? (
+          <form className="grid gap-3" onSubmit={(e) => { void saveIssueEdit(e) }}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-semibold">Edit issue #{issue.id}</h3>
+              <Badge variant="outline">{issue.label || 'UNLABELLED'}</Badge>
+            </div>
+            <label className="grid gap-1.5 text-sm">Title *
+              <Input required maxLength={200} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+            </label>
+            <label className="grid gap-1.5 text-sm">Description
+              <textarea className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 text-sm" maxLength={5000} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <label className="grid gap-1 text-xs text-muted-foreground">Status
+                <select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={editStatus} onChange={(e) => setEditStatus(e.target.value as IssueStatus)}>{statuses.map((v) => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select>
+              </label>
+              <label className="grid gap-1 text-xs text-muted-foreground">Priority
+                <select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={editPriority} onChange={(e) => setEditPriority(e.target.value as IssuePriority)}>{priorities.map((v) => <option key={v} value={v}>{v}</option>)}</select>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setEditingIssueId(null)} disabled={saving}>Cancel</Button>
+              <Button type="submit" disabled={saving || !editTitle.trim()}>{saving ? 'Saving...' : 'Save changes'}</Button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div><h3 className="font-semibold">{issue.title}</h3><p className="mt-1 text-sm text-muted-foreground">{issue.description || 'No description'}</p></div>
+              <div className="flex items-center gap-2"><Badge variant="outline">#{issue.id}</Badge><Button size="sm" variant="outline" onClick={() => startEditing(issue)}><Pencil data-icon="inline-start" /> Edit</Button></div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{issue.label || 'UNLABELLED'}</Badge><span className="text-xs text-muted-foreground">Reporter #{issue.reporterId}</span>{issue.assigneeId && <span className="text-xs text-muted-foreground">Assignee #{issue.assigneeId}</span>}</div>
+            <div className="flex flex-wrap gap-3">
+              <label className="grid gap-1 text-xs text-muted-foreground">Status<select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={issue.status} onChange={(e) => void changeIssue(issue, { status: e.target.value as IssueStatus })}>{statuses.map((v) => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select></label>
+              <label className="grid gap-1 text-xs text-muted-foreground">Priority<select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={issue.priority} onChange={(e) => void changeIssue(issue, { priority: e.target.value as IssuePriority })}>{priorities.map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
+            </div>
+          </>
+        )}
       </CardContent></Card>)}</div>}
 
       <div className="flex items-center justify-between"><Button variant="ghost" size="sm" onClick={() => onNavigate('overview')}><ArrowLeft data-icon="inline-start" /> Back to overview</Button><div className="flex items-center gap-3 text-sm text-muted-foreground"><span>Page {page + 1} of {Math.max(totalPages, 1)}</span><Button size="sm" variant="outline" disabled={page <= 0 || loading} onClick={() => setPage((v) => v - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page + 1 >= totalPages || loading} onClick={() => setPage((v) => v + 1)}>Next</Button></div></div>
