@@ -38,3 +38,4 @@ target/
 .vscode/
 *.log
 
+src/main/resources/application-local.properties

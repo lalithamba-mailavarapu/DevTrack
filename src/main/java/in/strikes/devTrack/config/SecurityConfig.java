@@ -1,7 +1,6 @@
 package in.strikes.devTrack.config;
 
-import in.strikes.devTrack.security.JwtAuthenticationFilter;
-import in.strikes.devTrack.service.JwtService;
+import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +13,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import java.util.List;
+
+import in.strikes.devTrack.security.JwtAuthenticationFilter;
+import in.strikes.devTrack.service.JwtService;
 
 @Configuration
 public class SecurityConfig {
@@ -43,6 +44,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                 "/",
+                "/api/health",
                     "/api/auth/register",
                     "/api/auth/login"
                 ).permitAll()

@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import in.strikes.devTrack.dto.LoginRequest;
+import in.strikes.devTrack.dto.LoginResponse;
 import in.strikes.devTrack.dto.RegisterRequest;
 import in.strikes.devTrack.dto.RegisterResponse;
 import in.strikes.devTrack.service.AuthService;
 import jakarta.validation.Valid;
-import in.strikes.devTrack.dto.LoginRequest;
-import in.strikes.devTrack.dto.LoginResponse;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -45,6 +45,7 @@ public class AuthController {
 
         return ResponseEntity.ok(response);
     }
+    
     @GetMapping("/me")
     public ResponseEntity<String> me(
             org.springframework.security.core.Authentication authentication) {
