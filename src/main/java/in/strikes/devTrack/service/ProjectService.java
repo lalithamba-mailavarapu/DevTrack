@@ -90,7 +90,6 @@ public class ProjectService {
 
         Project savedProject = projectRepository.save(project);
 
-// Automatically add the project owner as an OWNER member
 ProjectMembership ownerMembership = new ProjectMembership(
         savedProject,
         owner,
@@ -120,6 +119,68 @@ return mapToResponse(savedProject);
                 .toList();
     }
 
+
+    @Transactional
+        public ProjectResponse updateProject(
+                Long projectId,
+                CreateProjectRequest request) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Authenticated user not found"));
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Project not found"));
+
+        if (!project.getOwner().getId().equals(currentUser.getId())) {
+                throw new ForbiddenException(
+                        "Only the project owner can update this project");
+        }
+
+        project.setName(request.getName());
+        project.setDescription(request.getDescription());
+        project.setPrimaryLanguage(request.getPrimaryLanguage());
+        project.setCategory(request.getCategory());
+        project.setGithubRepositoryUrl(request.getGithubRepositoryUrl());
+
+        if (request.getTechnologies() != null) {
+                project.getTechnologies().clear();
+
+                for (ProjectTechnologyRequest technologyRequest : request.getTechnologies()) {
+
+                TechnologyType type;
+
+                try {
+                        type = TechnologyType.valueOf(
+                                technologyRequest.getTechnologyType()
+                                        .trim()
+                                        .toUpperCase());
+                } catch (IllegalArgumentException | NullPointerException exception) {
+                        throw new IllegalArgumentException(
+                                "Invalid technology type: "
+                                        + technologyRequest.getTechnologyType());
+                }
+
+                ProjectTechnology technology = new ProjectTechnology(
+                        technologyRequest.getTechnologyName().trim(),
+                        type,
+                        project
+                );
+
+                project.addTechnology(technology);
+                }
+        }
+
+        Project updatedProject = projectRepository.save(project);
+
+        return mapToResponse(updatedProject);
+        }
 
     @Transactional
     public void deleteProject(Long projectId) {
