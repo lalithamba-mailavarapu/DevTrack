@@ -4,11 +4,31 @@ import axios from 'axios'
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, '')
 
+
+export async function checkBackendHealth() {
+  if (!apiBaseUrl) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured.')
+  }
+
+  const response = await axios.get(
+    `${apiBaseUrl}/api/health`,
+    {
+      timeout: 120_000,
+      headers: {
+        Accept: 'application/json',
+      },
+    }
+  )
+
+  return response.data
+}
+
+
 let accessToken: string | null = null
 
 export const apiClient = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 20_000,
+  timeout: 120_000,
   headers: {
     Accept: 'application/json',
   },

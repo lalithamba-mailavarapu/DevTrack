@@ -32,7 +32,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+    <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-slate-900 [color-scheme:light]">
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <h1 className="text-3xl font-bold text-slate-900">
           Create your account
@@ -48,7 +48,7 @@ export default function RegisterPage() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-lg border p-3"
+              className="w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               placeholder="Your username"
             />
           </div>
@@ -60,7 +60,7 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border p-3"
+              className="w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               placeholder="you@example.com"
             />
           </div>
@@ -73,7 +73,7 @@ export default function RegisterPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border p-3"
+              className="w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               placeholder="Create a password"
             />
           </div>
