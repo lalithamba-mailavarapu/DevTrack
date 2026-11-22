@@ -5,15 +5,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import in.strikes.devTrack.dto.ChangePasswordRequest;
 import in.strikes.devTrack.dto.CurrentUserResponse;
 import in.strikes.devTrack.dto.LoginRequest;
 import in.strikes.devTrack.dto.LoginResponse;
 import in.strikes.devTrack.dto.RegisterRequest;
 import in.strikes.devTrack.dto.RegisterResponse;
+import in.strikes.devTrack.dto.UpdateProfileRequest;
 import in.strikes.devTrack.service.AuthService;
 import jakarta.validation.Valid;
 
@@ -55,6 +58,34 @@ public class AuthController {
                 authService.getCurrentUser(authentication.getName());
 
         return ResponseEntity.ok(response);
+    }
+
+
+    @PutMapping("/me")
+    public ResponseEntity<CurrentUserResponse> updateMe(
+            org.springframework.security.core.Authentication authentication,
+            @Valid @RequestBody UpdateProfileRequest request) {
+
+        CurrentUserResponse response =
+                authService.updateCurrentUser(
+                        authentication.getName(),
+                        request
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            org.springframework.security.core.Authentication authentication,
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+        authService.changePassword(
+                authentication.getName(),
+                request
+        );
+
+        return ResponseEntity.ok("Password changed successfully");
     }
 
 }
