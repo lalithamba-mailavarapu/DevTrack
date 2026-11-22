@@ -1,19 +1,17 @@
 
 package in.strikes.devTrack.service;
 
-import in.strikes.devTrack.dto.RegisterRequest;
-import in.strikes.devTrack.dto.RegisterResponse;
-import in.strikes.devTrack.entity.User;
-import in.strikes.devTrack.repository.UserRepository;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import in.strikes.devTrack.dto.CurrentUserResponse;
 import in.strikes.devTrack.dto.LoginRequest;
 import in.strikes.devTrack.dto.LoginResponse;
-import in.strikes.devTrack.service.JwtService;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import in.strikes.devTrack.dto.RegisterRequest;
+import in.strikes.devTrack.dto.RegisterResponse;
+import in.strikes.devTrack.entity.User;
+import in.strikes.devTrack.repository.UserRepository;
 
 
 @Service
@@ -78,4 +76,17 @@ public class AuthService {
         return new LoginResponse(token);
     }
 
+    public CurrentUserResponse getCurrentUser(String email) {
+
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() ->
+                    new IllegalArgumentException("User not found"));
+
+    return new CurrentUserResponse(
+            user.getId(),
+            user.getUsername(),
+            user.getEmail(),
+            user.getCreatedAt()
+    );
+}
 }

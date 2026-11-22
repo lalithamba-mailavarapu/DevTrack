@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import in.strikes.devTrack.dto.CurrentUserResponse;
 import in.strikes.devTrack.dto.LoginRequest;
 import in.strikes.devTrack.dto.LoginResponse;
 import in.strikes.devTrack.dto.RegisterRequest;
@@ -47,9 +48,13 @@ public class AuthController {
     }
     
     @GetMapping("/me")
-    public ResponseEntity<String> me(
+    public ResponseEntity<CurrentUserResponse> me(
             org.springframework.security.core.Authentication authentication) {
-        return ResponseEntity.ok(authentication.getName());
+
+        CurrentUserResponse response =
+                authService.getCurrentUser(authentication.getName());
+
+        return ResponseEntity.ok(response);
     }
 
 }
