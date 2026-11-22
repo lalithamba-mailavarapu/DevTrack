@@ -12,12 +12,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import in.strikes.devTrack.dto.ChangePasswordRequest;
 import in.strikes.devTrack.dto.CurrentUserResponse;
+import in.strikes.devTrack.dto.ForgotPasswordRequest;
 import in.strikes.devTrack.dto.LoginRequest;
 import in.strikes.devTrack.dto.LoginResponse;
 import in.strikes.devTrack.dto.RegisterRequest;
 import in.strikes.devTrack.dto.RegisterResponse;
+import in.strikes.devTrack.dto.ResetPasswordRequest;
 import in.strikes.devTrack.dto.UpdateProfileRequest;
 import in.strikes.devTrack.service.AuthService;
+import in.strikes.devTrack.service.PasswordResetService;
 import jakarta.validation.Valid;
 
 @RestController
@@ -25,9 +28,11 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/register")
@@ -86,6 +91,29 @@ public class AuthController {
         );
 
         return ResponseEntity.ok("Password changed successfully");
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+
+        passwordResetService.requestPasswordReset(request.getEmail());
+
+        return ResponseEntity.ok(
+                "If an account exists for that email, a password reset link will be sent."
+        );
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        passwordResetService.resetPassword(
+                request.getToken(),
+                request.getNewPassword()
+        );
+
+        return ResponseEntity.ok("Password reset successfully");
     }
 
 }

@@ -1,3 +1,4 @@
+
 package in.strikes.devTrack.config;
 
 import java.util.List;
@@ -38,15 +39,17 @@ public class SecurityConfig {
             throws Exception {
 
         http.cors(cors -> {})
-    .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                "/",
-                "/api/health",
+                    "/",
+                    "/api/health",
                     "/api/auth/register",
-                    "/api/auth/login"
+                    "/api/auth/login",
+                    "/api/auth/forgot-password",
+                    "/api/auth/reset-password"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
@@ -62,12 +65,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(
-    List.of(
-        "http://localhost:3000",
-        "https://devtrack-frontend-i5ze.onrender.com"
-    )
-);
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "https://devtrack-frontend-i5ze.onrender.com"
+        ));
 
         configuration.setAllowedMethods(List.of(
             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
