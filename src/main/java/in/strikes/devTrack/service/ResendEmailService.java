@@ -16,11 +16,10 @@ public class ResendEmailService {
     private final String fromEmail;
 
     public ResendEmailService(
-            RestClient.Builder builder,
             @Value("${resend.api-key}") String apiKey,
             @Value("${resend.from-email}") String fromEmail) {
 
-        this.restClient = builder
+        this.restClient = RestClient.builder()
                 .baseUrl("https://api.resend.com")
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .build();
