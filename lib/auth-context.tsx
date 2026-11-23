@@ -38,8 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(token);
 
       try {
-        const email = await getCurrentUser();
-        setUser(email);
+        const currentUser = await getCurrentUser()
+        setUser(currentUser.email)
       } catch {
         setAccessToken(null);
         setUser(null);
@@ -51,9 +51,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restoreSession();
   }, []);
 
-  async function refreshUser() {
-  const email = await getCurrentUser();
-  setUser(email);
+ async function refreshUser() {
+  const currentUser = await getCurrentUser();
+
+  console.log("ACTUAL /me RESPONSE:", currentUser);
+  console.log("RESPONSE TYPE:", typeof currentUser);
+  console.log("RESPONSE EMAIL:", currentUser?.email);
+
+  setUser(currentUser.email);
 }
 
   function logout() {

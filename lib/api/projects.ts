@@ -55,6 +55,17 @@ export async function createProject(
   return response.data
 }
 
+export async function updateProject(
+  projectId: number,
+  data: CreateProjectRequest
+): Promise<ProjectResponse> {
+  const response = await apiClient.put<ProjectResponse>(
+    `/api/projects/${projectId}`,
+    data
+  )
+  return response.data
+}
+
 export async function deleteProject(projectId: number): Promise<void> {
   await apiClient.delete(`/api/projects/${projectId}`)
 }

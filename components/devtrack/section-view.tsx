@@ -1,12 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import {  ArrowLeft,  CircleHelp,  Code2,  Database,  FolderKanban,  Layers3,  Monitor,  Moon,  MoreHorizontal,  Plus,  RefreshCw,  ShieldAlert,  Sun,  Trash2,  Wrench,} from 'lucide-react'
+import {  ArrowLeft,  CircleHelp,  Code2,  Database,  FolderKanban,  Layers3,  Monitor,  Moon,  MoreHorizontal,  Pencil, Plus,  RefreshCw,  ShieldAlert,  Sun,  Trash2,  Wrench,} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { createProject, deleteProject, getProjects, type ProjectResponse, type TechnologyType } from '@/lib/api/projects'
+import {
+  createProject,
+  updateProject,
+  deleteProject,
+  getProjects,
+  type ProjectResponse,
+  type TechnologyType,
+} from '@/lib/api/projects'
+import { getCurrentUser, updateCurrentUser, changePassword } from '@/lib/api/auth'
 import { sectionDetails, type AppSection } from './navigation'
 import { IssuesSection } from './issues-section'
 import { TeamSection } from './team-section'
@@ -17,6 +25,7 @@ type SectionViewProps = {
   section: Exclude<AppSection, 'overview'>
   onNavigate: (section: AppSection) => void
 }
+
 
 const backendCoverage: Record<Exclude<AppSection, 'overview'>, string> = {
   projects: 'Projects are loaded from your authenticated Spring Boot API.',
@@ -38,6 +47,7 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
   const [deletingProjectId, setDeletingProjectId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [primaryLanguage, setPrimaryLanguage] = useState('')
@@ -47,8 +57,19 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
   const { theme, setTheme, systemTheme } = useTheme()
   const [themeMounted, setThemeMounted] = useState(false)
   const [profileEmail, setProfileEmail] = useState('')
+  const [profileUsername, setProfileUsername] = useState('')
+  const [profileCreatedAt, setProfileCreatedAt] = useState('')
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileUsernameDraft, setProfileUsernameDraft] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     setThemeMounted(true)
@@ -95,26 +116,50 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
   setProfileError(null)
 
   try {
-    const response = await apiClient.get<string>('/api/auth/me', {
-      responseType: 'text',
-      headers: {
-        Accept: 'text/plain',
-      },
-    })
+    const user = await getCurrentUser()
 
-    const email = response.data.trim()
-
-    if (!email) {
-      throw new Error('The backend returned an empty user identity.')
-    }
-
-    setProfileEmail(email)
+    setProfileEmail(user.email)
+    setProfileUsername(user.username)
+    setProfileCreatedAt(user.createdAt)
   } catch (err) {
     setProfileError(getApiErrorMessage(err))
   } finally {
     setProfileLoading(false)
   }
 }, [])
+
+
+const handleSaveProfile = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault()
+
+  const username = profileUsernameDraft.trim()
+
+  if (!username) {
+    setProfileError('Username cannot be empty.')
+    return
+  }
+
+  if (username.length > 50) {
+    setProfileError('Username cannot exceed 50 characters.')
+    return
+  }
+
+  setProfileSaving(true)
+  setProfileError(null)
+
+  try {
+    const updatedUser = await updateCurrentUser({ username })
+
+    setProfileUsername(updatedUser.username)
+    setProfileEmail(updatedUser.email)
+    setProfileCreatedAt(updatedUser.createdAt)
+    setEditingProfile(false)
+  } catch (err) {
+    setProfileError(getApiErrorMessage(err))
+  } finally {
+    setProfileSaving(false)
+  }
+}
 
 
   useEffect(() => {
@@ -126,6 +171,80 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
     void loadProfile()
   }
 }, [section, loadProjects, loadProfile])
+
+function resetProjectForm() {
+  setEditingProjectId(null)
+  setName('')
+  setDescription('')
+  setPrimaryLanguage('')
+  setCategory('')
+  setGithubRepositoryUrl('')
+  setTechnologyLines('')
+  setError(null)
+}
+
+ async function handleEditProject(project: ProjectResponse) {
+  setEditingProjectId(project.id)
+  setName(project.name)
+  setDescription(project.description ?? '')
+  setPrimaryLanguage(project.primaryLanguage ?? '')
+  setCategory(project.category ?? '')
+  setGithubRepositoryUrl(project.githubRepositoryUrl ?? '')
+  setTechnologyLines(
+    (project.technologies ?? [])
+      .map((tech) => `${tech.technologyName} | ${tech.technologyType}`)
+      .join('\n')
+  )
+  setShowForm(true)
+  setError(null)
+}
+
+const handleChangePassword = async (
+  event: FormEvent<HTMLFormElement>
+) => {
+  event.preventDefault()
+
+  setPasswordError(null)
+  setPasswordSuccess(null)
+
+  if (!currentPassword || !newPassword || !confirmNewPassword) {
+    setPasswordError('Please fill in all password fields.')
+    return
+  }
+
+  if (newPassword.length < 8) {
+    setPasswordError('New password must contain at least 8 characters.')
+    return
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    setPasswordError('New password and confirmation do not match.')
+    return
+  }
+
+  if (currentPassword === newPassword) {
+    setPasswordError('Your new password must be different.')
+    return
+  }
+
+  setPasswordSaving(true)
+
+  try {
+    await changePassword({
+      currentPassword,
+      newPassword,
+    })
+
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setPasswordSuccess('Your password has been changed successfully.')
+  } catch (error) {
+    setPasswordError(getApiErrorMessage(error))
+  } finally {
+    setPasswordSaving(false)
+  }
+}
 
   async function handleCreateProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -147,14 +266,21 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
           return { technologyName, technologyType: requestedType as TechnologyType }
         })
 
-      await createProject({
+      const projectData = {
         name: name.trim(),
         description: description.trim() || undefined,
         primaryLanguage: primaryLanguage.trim() || undefined,
         category: category.trim() || undefined,
         githubRepositoryUrl: githubRepositoryUrl.trim() || undefined,
         technologies,
-      })
+      }
+
+      if (editingProjectId !== null) {
+        await updateProject(editingProjectId, projectData)
+      } else {
+        await createProject(projectData)
+      }
+      setEditingProjectId(null)
       setName('')
       setDescription('')
       setPrimaryLanguage('')
@@ -183,7 +309,15 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
             <Button variant="outline" onClick={() => void loadProjects()} disabled={loading || saving}>
               <RefreshCw data-icon="inline-start" /> Refresh
             </Button>
-            <Button onClick={() => setShowForm((current) => !current)}>
+            <Button onClick={() => {
+                  if (showForm) {
+                    resetProjectForm()
+                    setShowForm(false)
+                  } else {
+                    resetProjectForm()
+                    setShowForm(true)
+                  }
+                }}>
               <Plus data-icon="inline-start" /> {showForm ? 'Close form' : 'New project'}
             </Button>
           </div>
@@ -194,7 +328,9 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
         {showForm && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Create a project</CardTitle>
+              <CardTitle className="text-base">
+                {editingProjectId !== null ? 'Edit project' : 'Create a project'}
+              </CardTitle>
               <CardDescription>Details will be submitted to your Spring Boot backend.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -218,8 +354,15 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
                   <textarea className="min-h-24 rounded-lg border border-input bg-transparent px-3 py-2 font-mono text-xs" value={technologyLines} onChange={(event) => setTechnologyLines(event.target.value)} placeholder={'Java | LANGUAGE\nSpring Boot | FRAMEWORK\nPostgreSQL | DATABASE'} />
                 </label>
                 <div className="flex justify-end gap-2 md:col-span-2">
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} disabled={saving}>Cancel</Button>
-                  <Button type="submit" disabled={saving || !name.trim()}>{saving ? 'Creating...' : 'Create project'}</Button>
+                  <Button type="button" variant="outline" onClick={() => {
+                        resetProjectForm()
+                        setShowForm(false)
+                      }} disabled={saving}>Cancel</Button>
+                  <Button type="submit" disabled={saving || !name.trim()}>
+                    {saving
+                      ? editingProjectId !== null ? 'Saving...' : 'Creating...'
+                      : editingProjectId !== null ? 'Save changes' : 'Create project'}
+                  </Button>    
                 </div>
               </form>
             </CardContent>
@@ -257,6 +400,17 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
                         </summary>
 
                         <div className="absolute right-0 top-9 z-50 min-w-40 rounded-lg border border-border bg-popover p-1 shadow-lg">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.currentTarget.closest('details')?.removeAttribute('open')
+                              handleEditProject(project)
+                            }}
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-muted"
+                          >
+                            <Pencil className="size-4" />
+                            Edit project
+                          </button>
                           <button
                             type="button"
                             disabled={deletingProjectId === project.id}
@@ -389,7 +543,9 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
     return <TeamSection onNavigate={onNavigate} />
   }
 
-  if (section === 'profile') {
+ 
+  
+if (section === 'profile') {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -400,40 +556,141 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
           Profile
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Information retrieved from your authenticated backend session.
+          Manage your personal account information.
         </p>
       </div>
 
+      {profileError && (
+        <div
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive"
+        >
+          {profileError}
+        </div>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Account information</CardTitle>
+          <CardTitle>Personal information</CardTitle>
           <CardDescription>
-            Details associated with your signed-in account.
+            Your account details retrieved from the backend.
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="flex flex-col gap-3">
-          <div className="grid gap-1">
-            <p className="text-sm font-medium">Authenticated email</p>
+        <CardContent className="flex flex-col gap-5">
+          {profileLoading && !profileEmail ? (
+            <p className="text-sm text-muted-foreground">
+              Loading profile...
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="grid size-12 place-items-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
+                  {(profileUsername || profileEmail || 'U')
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold">
+                    {profileUsername || 'Username unavailable'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {profileEmail}
+                  </p>
+                </div>
+              </div>
 
-            {profileLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Loading account information...
-              </p>
-            ) : profileError ? (
-              <p role="alert" className="text-sm text-destructive">
-                {profileError}
-              </p>
-            ) : (
-              <p className="text-sm text-foreground">{profileEmail}</p>
-            )}
-          </div>
+              {editingProfile ? (
+                <form
+                  onSubmit={(event) => void handleSaveProfile(event)}
+                  className="flex flex-col gap-4"
+                >
+                  <label className="grid gap-1.5 text-sm font-medium">
+                    Username
+                    <Input
+                      value={profileUsernameDraft}
+                      onChange={(event) =>
+                        setProfileUsernameDraft(event.target.value)
+                      }
+                      maxLength={50}
+                      required
+                      placeholder="Enter your username"
+                    />
+                  </label>
+
+                  <div className="grid gap-1.5 text-sm">
+                    <span className="font-medium">Email address</span>
+                    <Input value={profileEmail} disabled />
+                    <p className="text-xs text-muted-foreground">
+                      Your email address is permanently associated with this account and cannot be changed.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" disabled={profileSaving}>
+                      {profileSaving ? 'Saving...' : 'Save changes'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={profileSaving}
+                      onClick={() => {
+                        setEditingProfile(false)
+                        setProfileUsernameDraft(profileUsername)
+                        setProfileError(null)
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-1">
+                      <p className="text-xs text-muted-foreground">Username</p>
+                      <p className="text-sm font-medium">{profileUsername}</p>
+                    </div>
+
+                    <div className="grid gap-1">
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="break-all text-sm font-medium">
+                        {profileEmail}
+                      </p>
+                    </div>
+
+                    <div className="grid gap-1">
+                      <p className="text-xs text-muted-foreground">Member since</p>
+                      <p className="text-sm font-medium">
+                        {profileCreatedAt
+                          ? new Date(profileCreatedAt).toLocaleDateString()
+                          : 'Unavailable'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="self-start"
+                    onClick={() => {
+                      setProfileUsernameDraft(profileUsername)
+                      setProfileError(null)
+                      setEditingProfile(true)
+                    }}
+                  >
+                    <Pencil data-icon="inline-start" />
+                    Edit profile
+                  </Button>
+                </>
+              )}
+            </>
+          )}
 
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => void loadProfile()}
-            disabled={profileLoading}
+            disabled={profileLoading || profileSaving}
             className="self-start"
           >
             <RefreshCw
@@ -459,6 +716,8 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
 }
 
 
+
+
   if (section === 'settings') {
   return (
     <div className="flex flex-col gap-6">
@@ -470,7 +729,7 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
           Settings
         </h1>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Customize how DevTrack looks across your application.
+          Manage your account security and customize how DevTrack looks.
         </p>
       </div>
 
@@ -523,8 +782,98 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+          <CardDescription>
+            Update your account password to keep your DevTrack account secure.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form
+            onSubmit={handleChangePassword}
+            className="flex max-w-lg flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2">
+              <label htmlFor="current-password" className="text-sm font-medium">
+                Current password
+              </label>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                placeholder="Enter your current password"
+                disabled={passwordSaving}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="new-password" className="text-sm font-medium">
+                New password
+              </label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Enter your new password"
+                disabled={passwordSaving}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your new password must contain at least 8 characters.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="confirm-new-password"
+                className="text-sm font-medium"
+              >
+                Confirm new password
+              </label>
+              <Input
+                id="confirm-new-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmNewPassword}
+                onChange={(event) =>
+                  setConfirmNewPassword(event.target.value)
+                }
+                placeholder="Confirm your new password"
+                disabled={passwordSaving}
+              />
+            </div>
+
+            {passwordError && (
+              <p className="text-sm text-destructive" role="alert">
+                {passwordError}
+              </p>
+            )}
+
+            {passwordSuccess && (
+              <p className="text-sm text-green-600" role="status">
+                {passwordSuccess}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={passwordSaving}
+              className="self-start"
+            >
+              {passwordSaving ? 'Updating password...' : 'Update password'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <p className="text-xs text-muted-foreground">
-        Appearance preferences are stored locally and do not require a backend API.
+        Appearance preferences are stored locally. Password changes are
+        securely processed by the DevTrack backend.
       </p>
 
       <Button

@@ -11,6 +11,8 @@ export default function AuthGuard({
   children: ReactNode;
 }) {
   const { user, loading } = useAuth();
+  
+console.log("AUTH GUARD STATE:", { user, loading });
   const router = useRouter();
 
   useEffect(() => {

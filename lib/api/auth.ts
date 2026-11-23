@@ -31,7 +31,77 @@ export async function loginUser(data: LoginRequest): Promise<AuthResponse> {
   return response.data;
 }
 
-export async function getCurrentUser() {
-  const response = await apiClient.get("/api/auth/me");
+export interface CurrentUserResponse {
+  id: number
+  username: string
+  email: string
+  createdAt: string
+}
+
+export async function getCurrentUser(): Promise<CurrentUserResponse> {
+  const response = await apiClient.get<CurrentUserResponse>('/api/auth/me')
+  return response.data
+}
+
+export interface UpdateProfileRequest {
+  username: string
+}
+
+export async function updateCurrentUser(
+  data: UpdateProfileRequest
+): Promise<CurrentUserResponse> {
+  const response = await apiClient.put<CurrentUserResponse>(
+    '/api/auth/me',
+    data
+  )
+
+  return response.data
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export async function changePassword(
+  data: ChangePasswordRequest
+): Promise<string> {
+  const response = await apiClient.post<string>(
+    "/api/auth/change-password",
+    data
+  );
+
+  return response.data;
+}
+
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export async function forgotPassword(
+  data: ForgotPasswordRequest
+): Promise<string> {
+  const response = await apiClient.post<string>(
+    '/api/auth/forgot-password',
+    data
+  );
+
+  return response.data;
+}
+
+export async function resetPassword(
+  data: ResetPasswordRequest
+): Promise<string> {
+  const response = await apiClient.post<string>(
+    '/api/auth/reset-password',
+    data
+  );
+
   return response.data;
 }
