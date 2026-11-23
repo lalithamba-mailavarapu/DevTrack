@@ -3,7 +3,14 @@ package in.strikes.devTrack.entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
 @Table(
@@ -43,6 +50,9 @@ public class PendingRegistration {
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    @Column(name = "verification_attempts", nullable = false)
+private int verificationAttempts = 0;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -102,4 +112,12 @@ public class PendingRegistration {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public int getVerificationAttempts() {
+    return verificationAttempts;
+}
+
+public void setVerificationAttempts(int verificationAttempts) {
+    this.verificationAttempts = verificationAttempts;
+}
 }

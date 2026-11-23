@@ -11,6 +11,8 @@ import in.strikes.devTrack.entity.PendingRegistration;
 public interface PendingRegistrationRepository
         extends JpaRepository<PendingRegistration, Long> {
 
+    Optional<PendingRegistration> findByEmail(String email);
+
     Optional<PendingRegistration> findByTokenHash(String tokenHash);
 
     boolean existsByEmail(String email);

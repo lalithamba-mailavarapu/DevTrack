@@ -1,6 +1,8 @@
 
 package in.strikes.devTrack.controller;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,16 +46,19 @@ public class AuthController {
 }
 
 
-        @PostMapping("/verify-email")
-        public ResponseEntity<String> verifyEmail(
-                @Valid @RequestBody VerifyEmailRequest request) {
+       @PostMapping("/verify-email")
+public ResponseEntity<?> verifyEmail(
+        @RequestBody VerifyEmailRequest request) {
 
-        emailVerificationService.verifyEmail(request.getToken());
+    emailVerificationService.verifyEmail(
+            request.getEmail(),
+            request.getOtp()
+    );
 
-        return ResponseEntity.ok(
-                "Email verified and account created successfully. You can now log in."
-        );
-        }
+    return ResponseEntity.ok(
+            Map.of("message", "Email verified and account created successfully")
+    );
+}
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(

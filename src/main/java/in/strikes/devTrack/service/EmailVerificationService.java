@@ -6,10 +6,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.HexFormat;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +21,12 @@ import in.strikes.devTrack.repository.UserRepository;
 @Service
 public class EmailVerificationService {
 
+    private static final int MAX_VERIFICATION_ATTEMPTS = 5;
+
     private final PendingRegistrationRepository pendingRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ResendEmailService resendEmailService;
-    private final String frontendUrl;
+    private final EmailJsEmailService emailJsEmailService;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -35,14 +34,12 @@ public class EmailVerificationService {
             PendingRegistrationRepository pendingRepository,
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            ResendEmailService resendEmailService,
-            @Value("${app.frontend-url}") String frontendUrl) {
+            EmailJsEmailService emailJsEmailService) {
 
         this.pendingRepository = pendingRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.resendEmailService = resendEmailService;
-        this.frontendUrl = frontendUrl;
+        this.emailJsEmailService = emailJsEmailService;
     }
 
     @Transactional
@@ -59,7 +56,7 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        // Remove an earlier pending registration for this email.
+        // Remove an older pending registration for this email.
         pendingRepository.deleteByEmail(email);
 
         if (pendingRepository.existsByUsername(username)) {
@@ -67,74 +64,75 @@ public class EmailVerificationService {
                     "Username is already being used in another pending registration");
         }
 
-        // Generate a secure, random verification token.
-        byte[] randomBytes = new byte[32];
-        secureRandom.nextBytes(randomBytes);
-
-        String rawToken = Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(randomBytes);
+        // Generate a secure six-digit OTP.
+        String otp = String.format(
+                "%06d",
+                secureRandom.nextInt(1_000_000)
+        );
 
         PendingRegistration pending = new PendingRegistration();
 
         pending.setUsername(username);
         pending.setEmail(email);
         pending.setPasswordHash(
-                passwordEncoder.encode(request.getPassword()));
-
-        pending.setTokenHash(hashToken(rawToken));
-        pending.setExpiresAt(LocalDateTime.now().plusMinutes(15));
+                passwordEncoder.encode(request.getPassword())
+        );
+        pending.setTokenHash(hashToken(otp));
+        pending.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        pending.setVerificationAttempts(0);
 
         pendingRepository.save(pending);
 
-        String verificationLink =
-                frontendUrl + "/verify-email?token=" + rawToken;
-
-        String html = """
-                <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-                    <h2>Verify your DevTrack email</h2>
-                    <p>Thank you for registering with DevTrack.</p>
-                    <p>Click the button below to verify your email and create your account.</p>
-                    <a href="%s"
-                       style="display:inline-block;padding:12px 20px;
-                       background:#2563eb;color:white;text-decoration:none;
-                       border-radius:6px;">
-                       Verify Email
-                    </a>
-                    <p>This link expires in 15 minutes.</p>
-                    <p>If you did not request this, you can ignore this email.</p>
-                </div>
-                """.formatted(verificationLink);
-
-        resendEmailService.sendEmail(
+        // Send the OTP using EmailJS.
+        emailJsEmailService.sendVerificationEmail(
                 email,
-                "Verify your DevTrack email",
-                html
+                username,
+                otp
         );
     }
+    @Transactional(noRollbackFor = IllegalArgumentException.class)
+public void verifyEmail(String email, String otp) {
 
-    @Transactional
-    public void verifyEmail(String rawToken) {
-
-        if (rawToken == null || rawToken.isBlank()) {
-            throw new IllegalArgumentException("Verification token is required");
+        if (email == null || email.isBlank()
+                || otp == null || !otp.matches("\\d{6}")) {
+            throw new IllegalArgumentException(
+                    "A valid email and six-digit OTP are required"
+            );
         }
 
-        String tokenHash = hashToken(rawToken);
+        String normalizedEmail = email.trim().toLowerCase();
 
         PendingRegistration pending = pendingRepository
-                .findByTokenHash(tokenHash)
+                .findByEmail(normalizedEmail)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
-                                "Invalid or expired verification link"));
+                                "No pending registration found. Please register again."
+                        )
+                );
 
         if (!pending.getExpiresAt().isAfter(LocalDateTime.now())) {
             pendingRepository.delete(pending);
             throw new IllegalArgumentException(
-                    "Verification link has expired. Please register again.");
+                    "OTP has expired. Please register again."
+            );
         }
 
-        if (userRepository.existsByEmail(pending.getEmail())) {
+        if (pending.getVerificationAttempts() >= MAX_VERIFICATION_ATTEMPTS) {
+            pendingRepository.delete(pending);
+            throw new IllegalArgumentException(
+                    "Maximum verification attempts exceeded. Please register again."
+            );
+        }
+
+        pending.setVerificationAttempts(
+                pending.getVerificationAttempts() + 1
+        );
+
+        if (!hashToken(otp).equals(pending.getTokenHash())) {
+            throw new IllegalArgumentException("Incorrect OTP");
+        }
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
             pendingRepository.delete(pending);
             throw new IllegalArgumentException("Email already exists");
         }
@@ -144,7 +142,7 @@ public class EmailVerificationService {
             throw new IllegalArgumentException("Username already exists");
         }
 
-        // Create the actual account only after successful verification.
+        // Create the actual account only after successful OTP verification.
         User user = new User(
                 pending.getUsername(),
                 pending.getEmail(),
@@ -153,23 +151,23 @@ public class EmailVerificationService {
 
         userRepository.save(user);
 
-        // Remove the temporary registration.
+        // Delete the temporary registration.
         pendingRepository.delete(pending);
     }
 
-    private String hashToken(String token) {
-
+    private String hashToken(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
             byte[] hash = digest.digest(
-                    token.getBytes(StandardCharsets.UTF_8));
+                    value.getBytes(StandardCharsets.UTF_8)
+            );
 
             return HexFormat.of().formatHex(hash);
 
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(
-                    "Unable to generate verification token hash",
+                    "Unable to hash verification OTP",
                     exception
             );
         }

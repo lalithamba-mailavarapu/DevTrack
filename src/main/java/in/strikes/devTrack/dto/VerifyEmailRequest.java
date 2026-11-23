@@ -1,17 +1,27 @@
-package in.strikes.devTrack.dto;
 
-import jakarta.validation.constraints.NotBlank;
+package in.strikes.devTrack.dto;
 
 public class VerifyEmailRequest {
 
-    @NotBlank(message = "Verification token is required")
-    private String token;
+    private String email;
+    private String otp;
 
-    public String getToken() {
-        return token;
+    public VerifyEmailRequest() {
     }
 
-    public void setToken(String token) {
-        this.token = token;
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getOtp() {
+        return otp;
+    }
+
+    public void setOtp(String otp) {
+        this.otp = otp;
     }
 }
