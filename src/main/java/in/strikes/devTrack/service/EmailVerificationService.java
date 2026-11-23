@@ -78,7 +78,10 @@ public class EmailVerificationService {
                 passwordEncoder.encode(request.getPassword())
         );
         pending.setTokenHash(hashToken(otp));
-        pending.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        LocalDateTime now = LocalDateTime.now();
+
+        pending.setExpiresAt(now.plusMinutes(10));
+        pending.setOtpSentAt(now);
         pending.setVerificationAttempts(0);
 
         pendingRepository.save(pending);
@@ -154,6 +157,53 @@ public void verifyEmail(String email, String otp) {
         // Delete the temporary registration.
         pendingRepository.delete(pending);
     }
+
+    @Transactional
+public void resendOtp(String email) {
+
+    if (email == null || email.isBlank()) {
+        throw new IllegalArgumentException("Email is required");
+    }
+
+    String normalizedEmail = email.trim().toLowerCase();
+
+    PendingRegistration pending = pendingRepository
+            .findByEmail(normalizedEmail)
+            .orElseThrow(() -> new IllegalArgumentException(
+                    "No pending registration found. Please register again."
+            ));
+
+    LocalDateTime now = LocalDateTime.now();
+
+    // Enforce 60-second resend cooldown.
+    if (pending.getOtpSentAt() != null
+            && pending.getOtpSentAt().plusSeconds(60).isAfter(now)) {
+        throw new IllegalArgumentException(
+                "Please wait 60 seconds before requesting another OTP."
+        );
+    }
+
+    // Generate a fresh six-digit OTP.
+    String otp = String.format(
+            "%06d",
+            secureRandom.nextInt(1_000_000)
+    );
+
+    // Send the new OTP.
+    emailJsEmailService.sendVerificationEmail(
+            normalizedEmail,
+            pending.getUsername(),
+            otp
+    );
+
+    // Update the stored OTP only after the email service succeeds.
+    pending.setTokenHash(hashToken(otp));
+    pending.setOtpSentAt(now);
+    pending.setExpiresAt(now.plusMinutes(10));
+    pending.setVerificationAttempts(0);
+
+    pendingRepository.save(pending);
+}
 
     private String hashToken(String value) {
         try {

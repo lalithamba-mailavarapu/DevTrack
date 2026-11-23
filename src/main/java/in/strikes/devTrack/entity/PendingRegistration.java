@@ -54,6 +54,9 @@ public class PendingRegistration {
     @Column(name = "verification_attempts", nullable = false)
 private int verificationAttempts = 0;
 
+@Column(name = "otp_sent_at", nullable = false)
+private LocalDateTime otpSentAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -120,4 +123,13 @@ private int verificationAttempts = 0;
 public void setVerificationAttempts(int verificationAttempts) {
     this.verificationAttempts = verificationAttempts;
 }
+
+public LocalDateTime getOtpSentAt() {
+    return otpSentAt;
+}
+
+public void setOtpSentAt(LocalDateTime otpSentAt) {
+    this.otpSentAt = otpSentAt;
+}
+
 }

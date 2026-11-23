@@ -60,6 +60,17 @@ public ResponseEntity<?> verifyEmail(
     );
 }
 
+@PostMapping("/resend-otp")
+public ResponseEntity<?> resendOtp(
+        @RequestBody Map<String, String> request) {
+
+    emailVerificationService.resendOtp(request.get("email"));
+
+    return ResponseEntity.ok(
+            Map.of("message", "A new verification OTP has been sent to your email")
+    );
+}
+
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(
             @Valid @RequestBody RegisterRequest request) {
