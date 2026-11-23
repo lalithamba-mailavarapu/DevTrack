@@ -121,3 +121,18 @@ export async function verifyEmail(
 
   return response.data;
 }
+
+export interface ResendOtpRequest {
+  email: string;
+}
+
+export async function resendOtp(
+  data: ResendOtpRequest
+): Promise<string> {
+  const response = await apiClient.post(
+    "/api/auth/resend-otp",
+    data
+  );
+
+  return response.data;
+}

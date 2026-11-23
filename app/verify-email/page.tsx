@@ -1,10 +1,10 @@
 
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense,  useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { verifyEmail } from "@/lib/api/auth";
+import { resendOtp, verifyEmail } from "@/lib/api/auth";
 import { getApiErrorMessage } from "@/lib/api/client";
 
 function VerifyEmailContent() {
@@ -17,6 +17,20 @@ function VerifyEmailContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(60);
+    const [resending, setResending] = useState(false);
+    const [resendMessage, setResendMessage] = useState("");
+
+    useEffect(() => {
+  if (resendCooldown <= 0) return;
+
+  const timer = setTimeout(() => {
+    setResendCooldown((previous) => previous - 1);
+  }, 1000);
+
+  return () => clearTimeout(timer);
+}, [resendCooldown]);
+
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,6 +62,26 @@ function VerifyEmailContent() {
       setLoading(false);
     }
   }
+
+  async function handleResendOtp() {
+  if (!email || resendCooldown > 0 || resending) return;
+
+  setError("");
+  setResendMessage("");
+  setResending(true);
+
+  try {
+    await resendOtp({ email });
+
+    setOtp("");
+    setResendCooldown(60);
+    setResendMessage("A new verification code has been sent to your email.");
+  } catch (err) {
+    setError(getApiErrorMessage(err));
+  } finally {
+    setResending(false);
+  }
+}
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-slate-900 [color-scheme:light]">
@@ -110,6 +144,24 @@ function VerifyEmailContent() {
               >
                 {loading ? "Verifying..." : "Verify email"}
               </button>
+              <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resending || resendCooldown > 0 || !email}
+                    className="w-full rounded-lg border border-slate-300 p-3 font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                    {resending
+                        ? "Sending..."
+                        : resendCooldown > 0
+                        ? `Resend OTP in ${resendCooldown}s`
+                        : "Resend OTP"}
+                    </button>
+
+                    {resendMessage && (
+                    <p className="text-sm text-center text-green-600">
+                        {resendMessage}
+                    </p>
+                    )}
             </form>
 
             <p className="mt-6 text-center text-sm text-slate-600">
