@@ -36,8 +36,8 @@ export default function LoginPage() {
       setAccessToken(result.accessToken);
         await refreshUser();
         router.push("/");
-    } catch (err) {
-      setError(getApiErrorMessage(err));
+    } catch {
+  setError("Either the email or password is incorrect.");
     } finally {
       setLoading(false);
     }

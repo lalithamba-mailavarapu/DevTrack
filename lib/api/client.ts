@@ -66,13 +66,43 @@ export function setAccessToken(token: string | null) {
 }
 
 
+
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    if (error.response) return `The API returned HTTP ${error.response.status}.`
-    if (error.code === 'ECONNABORTED') return 'The API request timed out.'
-    return 'Could not reach the API server. Check the base URL and network connection.'
+    const data = error.response?.data;
+
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (data && typeof data === "object") {
+      const body = data as {
+        message?: string;
+        detail?: string;
+        error?: string;
+      };
+
+      if (body.message?.trim()) return body.message;
+      if (body.detail?.trim()) return body.detail;
+    }
+
+    if (error.code === "ECONNABORTED") {
+      return "The request timed out. Please try again.";
+    }
+
+    if (!error.response) {
+      return "Unable to connect to DevTrack. Please try again.";
+    }
+
+    if (error.response.status === 409) {
+      return "This username or email is already in use.";
+    }
+
+    return "Something went wrong. Please try again.";
   }
 
-  if (error instanceof Error) return error.message
-  return 'An unexpected API error occurred.'
+  if (error instanceof Error) return error.message;
+
+  return "An unexpected error occurred. Please try again.";
 }
+
