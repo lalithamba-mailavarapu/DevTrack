@@ -22,8 +22,15 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await registerUser({ username, email, password });
-      router.push("/login");
+      await registerUser({
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
+
+      router.push(
+        `/verify-email?sent=1&email=${encodeURIComponent(email.trim())}`
+      );
     } catch (err) {
       setError(getApiErrorMessage(err));
     } finally {
@@ -37,15 +44,20 @@ export default function RegisterPage() {
         <h1 className="text-3xl font-bold text-slate-900">
           Create your account
         </h1>
+
         <p className="mt-2 text-slate-500">
           Start managing your projects with DevTrack.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium">Username</label>
+            <label className="mb-2 block text-sm font-medium">
+              Username
+            </label>
             <input
               required
+              minLength={3}
+              maxLength={50}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
@@ -54,7 +66,9 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">Email</label>
+            <label className="mb-2 block text-sm font-medium">
+              Email
+            </label>
             <input
               type="email"
               required
@@ -66,11 +80,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium">Password</label>
+            <label className="mb-2 block text-sm font-medium">
+              Password
+            </label>
             <input
               type="password"
               required
               minLength={8}
+              maxLength={72}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
@@ -87,7 +104,7 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full rounded-lg bg-slate-900 p-3 font-medium text-white disabled:opacity-50"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Sending verification email..." : "Create account"}
           </button>
         </form>
 

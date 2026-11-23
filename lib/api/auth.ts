@@ -105,3 +105,18 @@ export async function resetPassword(
 
   return response.data;
 }
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export async function verifyEmail(
+  data: VerifyEmailRequest
+): Promise<string> {
+  const response = await apiClient.post<string>(
+    "/api/auth/verify-email",
+    data
+  );
+
+  return response.data;
+}
