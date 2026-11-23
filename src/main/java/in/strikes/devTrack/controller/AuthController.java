@@ -19,7 +19,9 @@ import in.strikes.devTrack.dto.RegisterRequest;
 import in.strikes.devTrack.dto.RegisterResponse;
 import in.strikes.devTrack.dto.ResetPasswordRequest;
 import in.strikes.devTrack.dto.UpdateProfileRequest;
+import in.strikes.devTrack.dto.VerifyEmailRequest;
 import in.strikes.devTrack.service.AuthService;
+import in.strikes.devTrack.service.EmailVerificationService;
 import in.strikes.devTrack.service.PasswordResetService;
 import jakarta.validation.Valid;
 
@@ -29,11 +31,29 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
-    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
-        this.authService = authService;
-        this.passwordResetService = passwordResetService;
-    }
+    public AuthController(
+        AuthService authService,
+        PasswordResetService passwordResetService,
+        EmailVerificationService emailVerificationService) {
+
+    this.authService = authService;
+    this.passwordResetService = passwordResetService;
+    this.emailVerificationService = emailVerificationService;
+}
+
+
+        @PostMapping("/verify-email")
+        public ResponseEntity<String> verifyEmail(
+                @Valid @RequestBody VerifyEmailRequest request) {
+
+        emailVerificationService.verifyEmail(request.getToken());
+
+        return ResponseEntity.ok(
+                "Email verified and account created successfully. You can now log in."
+        );
+        }
 
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> register(

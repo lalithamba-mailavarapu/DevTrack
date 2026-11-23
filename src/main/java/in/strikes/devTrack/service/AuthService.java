@@ -23,43 +23,33 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailVerificationService emailVerificationService;
 
     public AuthService(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-    }
+        UserRepository userRepository,
+        PasswordEncoder passwordEncoder,
+        JwtService jwtService,
+        EmailVerificationService emailVerificationService) {
+
+    this.userRepository = userRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.jwtService = jwtService;
+    this.emailVerificationService = emailVerificationService;
+}
 
 
     @Transactional
-    public RegisterResponse register(RegisterRequest request) {
+public RegisterResponse register(RegisterRequest request) {
 
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
-        }
+    emailVerificationService.startRegistration(request);
 
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPasswordHash(
-                passwordEncoder.encode(request.getPassword()));
-
-        User savedUser = userRepository.save(user);
-
-        return new RegisterResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                "Registration successful"
-        );
-    }
+    return new RegisterResponse(
+            null,
+            request.getUsername().trim(),
+            request.getEmail().trim().toLowerCase(),
+            "Verification email sent. Please verify your email to create your account."
+    );
+}
 
     
     public LoginResponse login(LoginRequest request) {
