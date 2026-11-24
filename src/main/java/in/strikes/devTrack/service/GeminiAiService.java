@@ -4,6 +4,8 @@ package in.strikes.devTrack.service;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,8 @@ public class GeminiAiService {
     private final RestClient restClient;
     private final String apiKey;
     private final String model;
+    private static final Logger log =
+        LoggerFactory.getLogger(GeminiAiService.class);
 
     public GeminiAiService(
             RestClient.Builder restClientBuilder,
@@ -94,15 +98,19 @@ public class GeminiAiService {
 
             return textNode.asText();
 
-        } catch (RestClientResponseException exception) {
+       } catch (RestClientResponseException exception) {
 
-            throw new IllegalStateException(
-                    "Gemini API request failed. HTTP status: "
-                            + exception.getStatusCode().value()
-                            + ". Details: "
-                            + exception.getResponseBodyAsString(),
-                    exception
-            );
-        }
+    log.error(
+            "Gemini API error. HTTP status: {}, Response: {}",
+            exception.getStatusCode().value(),
+            exception.getResponseBodyAsString(),
+            exception
+    );
+
+    throw new IllegalStateException(
+            "Gemini API request failed.",
+            exception
+    );
+}
     }
 }
