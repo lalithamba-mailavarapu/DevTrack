@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import {  ArrowLeft,  CircleHelp,  Code2,  Database,  FolderKanban,  Layers3,  Monitor,  Moon,  MoreHorizontal,  Pencil, Plus,  RefreshCw,  ShieldAlert,  Sun,  Trash2,  Wrench,} from 'lucide-react'
+import {  ArrowLeft,  CircleHelp,  Code2,  Database,  FolderKanban,  Layers3,  Monitor,  Moon,  MoreHorizontal,  Pencil, Plus,  RefreshCw, Sparkles,  ShieldAlert,  Sun,  Trash2,  Wrench,} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +20,7 @@ import { IssuesSection } from './issues-section'
 import { TeamSection } from './team-section'
 import { useTheme } from 'next-themes'
 import { apiClient, getApiErrorMessage } from '@/lib/api/client'
+import { analyzeProject, breakdownProjectTasks } from '@/lib/api/ai'
 
 type SectionViewProps = {
   section: Exclude<AppSection, 'overview'>
@@ -70,6 +71,12 @@ export function SectionView({ section, onNavigate }: SectionViewProps) {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null)
+  const [analyzingProjectId, setAnalyzingProjectId] = useState<number | null>(null)
+  const [analysisProjectId, setAnalysisProjectId] = useState<number | null>(null)
+  const [projectAnalysis, setProjectAnalysis] = useState('')
+  const [breakingDownProjectId, setBreakingDownProjectId] = useState<number | null>(null)
+  const [taskBreakdownProjectId, setTaskBreakdownProjectId] = useState<number | null>(null)
+  const [taskBreakdownResult, setTaskBreakdownResult] = useState('')
 
   useEffect(() => {
     setThemeMounted(true)
@@ -296,6 +303,41 @@ const handleChangePassword = async (
     }
   }
 
+  async function handleAnalyzeProject(projectId: number) {
+  setAnalyzingProjectId(projectId)
+  setAnalysisProjectId(projectId)
+  setProjectAnalysis('')
+  setError(null)
+
+  try {
+    const result = await analyzeProject(projectId)
+    setProjectAnalysis(result.analysis)
+  } catch (err) {
+    setAnalysisProjectId(null)
+    setError(getApiErrorMessage(err))
+  } finally {
+    setAnalyzingProjectId(null)
+  }
+}
+
+async function handleBreakdownProjectTasks(projectId: number) {
+  setBreakingDownProjectId(projectId)
+  setTaskBreakdownProjectId(projectId)
+  setTaskBreakdownResult('')
+  setError(null)
+
+  try {
+    const result = await breakdownProjectTasks(projectId)
+    setTaskBreakdownResult(result.analysis)
+  } catch (err) {
+    setTaskBreakdownProjectId(null)
+    setError(getApiErrorMessage(err))
+  } finally {
+    setBreakingDownProjectId(null)
+  }
+}
+
+
   if (section === 'projects') {
     return (
       <div className="flex flex-col gap-6">
@@ -438,6 +480,66 @@ const handleChangePassword = async (
                   {project.technologies?.length > 0 && <div className="flex flex-wrap gap-1.5">{project.technologies.map((tech) => <Badge key={tech.id} variant="secondary">{tech.technologyName}</Badge>)}</div>}
                   {project.githubRepositoryUrl && <a className="truncate text-xs text-primary underline-offset-4 hover:underline" href={project.githubRepositoryUrl} target="_blank" rel="noreferrer">Open GitHub repository</a>}
                   <p className="text-xs text-muted-foreground">Created {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'date unavailable'}</p>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      className="self-start"
+                      disabled={analyzingProjectId !== null}
+                      onClick={() => void handleAnalyzeProject(project.id)}
+                    >
+                      <Sparkles data-icon="inline-start" />
+                      {analyzingProjectId === project.id
+                        ? 'Analyzing project...'
+                        : 'AI Project Analysis'}
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      className="self-start"
+                      disabled={breakingDownProjectId !== null}
+                      onClick={() => void handleBreakdownProjectTasks(project.id)}
+                    >
+                      <Sparkles data-icon="inline-start" />
+                      {breakingDownProjectId === project.id
+                        ? 'Generating tasks...'
+                        : 'AI Task Breakdown'}
+                    </Button>
+                    {analysisProjectId === project.id && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                        <div className="mb-3 flex items-center gap-2 font-semibold">
+                          <Sparkles className="size-4 text-primary" />
+                          Gemini Project Analysis
+                        </div>
+
+                        {analyzingProjectId === project.id ? (
+                          <p className="text-sm text-muted-foreground">
+                            Analyzing project details, technologies and issues...
+                          </p>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-sm leading-6">
+                            {projectAnalysis}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {taskBreakdownProjectId === project.id && (
+                      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                        <div className="mb-3 flex items-center gap-2 font-semibold">
+                          <Sparkles className="size-4 text-primary" />
+                          Gemini Task Breakdown
+                        </div>
+
+                        {breakingDownProjectId === project.id ? (
+                          <p className="text-sm text-muted-foreground">
+                            Generating development tasks...
+                          </p>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-sm leading-6">
+                            {taskBreakdownResult}
+                          </div>
+                        )}
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             ))}

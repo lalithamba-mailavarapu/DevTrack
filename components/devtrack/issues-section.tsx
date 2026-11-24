@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { ArrowLeft, Pencil, Plus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, RefreshCw, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import {
   type IssueResponse, type IssueStatus, type IssuePriority, type IssueLabel,
 } from '@/lib/api/issues'
 import type { AppSection } from './navigation'
+import { analyzeIssue } from '@/lib/api/ai'
 
 const statuses: IssueStatus[] = ['OPEN', 'IN_PROGRESS', 'CLOSED']
 const priorities: IssuePriority[] = ['LOW', 'MEDIUM', 'HIGH']
@@ -38,6 +39,9 @@ export function IssuesSection({ onNavigate }: { onNavigate: (section: AppSection
   const [editDescription, setEditDescription] = useState('')
   const [editStatus, setEditStatus] = useState<IssueStatus>('OPEN')
   const [editPriority, setEditPriority] = useState<IssuePriority>('MEDIUM')
+  const [analyzingIssueId, setAnalyzingIssueId] = useState<number | null>(null)
+  const [analysisIssueId, setAnalysisIssueId] = useState<number | null>(null)
+  const [analysisResult, setAnalysisResult] = useState('')
 
   const loadProjects = useCallback(async () => {
     try {
@@ -114,6 +118,27 @@ export function IssuesSection({ onNavigate }: { onNavigate: (section: AppSection
       setSaving(false)
     }
   }
+
+  async function handleAnalyzeIssue(issue: IssueResponse) {
+  setAnalyzingIssueId(issue.id)
+  setAnalysisIssueId(issue.id)
+  setAnalysisResult('')
+  setError(null)
+
+  try {
+    const result = await analyzeIssue({
+      title: issue.title,
+      description: issue.description || 'No description provided.',
+    })
+
+    setAnalysisResult(result.analysis)
+  } catch (err) {
+    setAnalysisIssueId(null)
+    setError(getApiErrorMessage(err))
+  } finally {
+    setAnalyzingIssueId(null)
+  }
+}
 
   return (
     <div className="flex flex-col gap-6">
@@ -196,9 +221,48 @@ export function IssuesSection({ onNavigate }: { onNavigate: (section: AppSection
           <>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div><h3 className="font-semibold">{issue.title}</h3><p className="mt-1 text-sm text-muted-foreground">{issue.description || 'No description'}</p></div>
-              <div className="flex items-center gap-2"><Badge variant="outline">#{issue.id}</Badge><Button size="sm" variant="outline" onClick={() => startEditing(issue)}><Pencil data-icon="inline-start" /> Edit</Button></div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">#{issue.id}</Badge>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleAnalyzeIssue(issue)}
+                  disabled={analyzingIssueId !== null}
+                >
+                  <Sparkles data-icon="inline-start" />
+                  {analyzingIssueId === issue.id ? 'Analyzing...' : 'AI Analyze'}
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startEditing(issue)}
+                >
+                  <Pencil data-icon="inline-start" />
+                  Edit
+                </Button>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2"><Badge variant="secondary">{issue.label || 'UNLABELLED'}</Badge><span className="text-xs text-muted-foreground">Reporter #{issue.reporterId}</span>{issue.assigneeId && <span className="text-xs text-muted-foreground">Assignee #{issue.assigneeId}</span>}</div>
+            {analysisIssueId === issue.id && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div className="mb-2 flex items-center gap-2 font-semibold">
+                  <Sparkles className="size-4 text-primary" />
+                  Gemini AI Analysis
+                </div>
+
+                {analyzingIssueId === issue.id ? (
+                  <p className="text-sm text-muted-foreground">
+                    Analyzing this issue...
+                  </p>
+                ) : (
+                  <div className="whitespace-pre-wrap text-sm leading-6">
+                    {analysisResult}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap gap-3">
               <label className="grid gap-1 text-xs text-muted-foreground">Status<select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={issue.status} onChange={(e) => void changeIssue(issue, { status: e.target.value as IssueStatus })}>{statuses.map((v) => <option key={v} value={v}>{v.replace('_', ' ')}</option>)}</select></label>
               <label className="grid gap-1 text-xs text-muted-foreground">Priority<select className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground" value={issue.priority} onChange={(e) => void changeIssue(issue, { priority: e.target.value as IssuePriority })}>{priorities.map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
