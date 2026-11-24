@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { setAccessToken } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth-context";
@@ -12,42 +12,55 @@ export default function GoogleCallbackPage() {
 
   const [error, setError] = useState("");
 
+  // Prevent duplicate callback processing in React Strict Mode.
+  const callbackPromiseRef = useRef<Promise<void> | null>(null);
+
   useEffect(() => {
     let active = true;
 
-    async function handleGoogleCallback() {
-      try {
-        const hash = window.location.hash;
+    if (!callbackPromiseRef.current) {
+      callbackPromiseRef.current = (async () => {
+        try {
+          const hash = window.location.hash;
 
-        const params = new URLSearchParams(
-          hash.startsWith("#") ? hash.substring(1) : hash
-        );
+          const params = new URLSearchParams(
+            hash.startsWith("#") ? hash.substring(1) : hash
+          );
 
-        const token = params.get("access_token");
+          const token = params.get("access_token");
 
-        if (!token) {
-          throw new Error("Google authentication failed. Please try again.");
+          if (!token) {
+            throw new Error(
+              "Google authentication failed. No access token was received."
+            );
+          }
+
+          // Remove the token from the browser URL.
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname
+          );
+
+          // Save the DevTrack JWT.
+          setAccessToken(token);
+
+          // Load the authenticated user's information.
+          await refreshUser();
+        } catch (err) {
+          setAccessToken(null);
+          throw err;
         }
+      })();
+    }
 
-        // Remove the token from the visible browser URL.
-        window.history.replaceState(
-          null,
-          "",
-          window.location.pathname
-        );
-
-        // Store the DevTrack JWT using the existing mechanism.
-        setAccessToken(token);
-
-        // Load the authenticated user's information.
-        await refreshUser();
-
+    callbackPromiseRef.current
+      .then(() => {
         if (active) {
           router.replace("/");
         }
-      } catch (err) {
-        setAccessToken(null);
-
+      })
+      .catch((err: unknown) => {
         if (active) {
           setError(
             err instanceof Error
@@ -55,10 +68,7 @@ export default function GoogleCallbackPage() {
               : "Google login failed. Please try again."
           );
         }
-      }
-    }
-
-    void handleGoogleCallback();
+      });
 
     return () => {
       active = false;
