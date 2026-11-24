@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -22,11 +23,21 @@ import org.springframework.web.client.RestClientException;
 public class GitHubOAuth2UserService
         implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final DefaultOAuth2UserService delegate =
-            new DefaultOAuth2UserService();
+   private final OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate;
+        private final RestClient restClient;
 
-    private final RestClient restClient = RestClient.create();
+        @Autowired
+        public GitHubOAuth2UserService(RestClient.Builder restClientBuilder) {
+        this(new DefaultOAuth2UserService(), restClientBuilder);
+        }
 
+        GitHubOAuth2UserService(
+                OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate,
+                RestClient.Builder restClientBuilder) {
+
+        this.delegate = delegate;
+        this.restClient = restClientBuilder.build();
+        }
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest)
             throws OAuth2AuthenticationException {
