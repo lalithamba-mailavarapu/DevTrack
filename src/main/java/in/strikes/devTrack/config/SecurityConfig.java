@@ -15,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import in.strikes.devTrack.security.GoogleOAuthSuccessHandler;
 import in.strikes.devTrack.security.JwtAuthenticationFilter;
 import in.strikes.devTrack.service.JwtService;
 
@@ -34,14 +35,15 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter)
-            throws Exception {
+        HttpSecurity http,
+        JwtAuthenticationFilter jwtAuthenticationFilter,
+        GoogleOAuthSuccessHandler googleOAuthSuccessHandler)
+        throws Exception {
 
         http.cors(cors -> {})
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/",
@@ -51,10 +53,13 @@ public class SecurityConfig {
                     "/api/auth/forgot-password",
                     "/api/auth/reset-password",
                     "/api/auth/verify-email",
-                    "/api/auth/resend-otp"
+                    "/api/auth/resend-otp",
+                    "/oauth2/**",
+                    "/login/oauth2/**"
                 ).permitAll()
                 .anyRequest().authenticated()
-            )
+            ).oauth2Login(oauth -> oauth
+    .successHandler(googleOAuthSuccessHandler))
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
