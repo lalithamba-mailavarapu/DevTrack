@@ -14,6 +14,9 @@ export default function LoginPage() {
   console.log("LOGIN PAGE LOADED");
   const router = useRouter();
   const { refreshUser } = useAuth();
+  const googleLoginUrl = `${
+  process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, "")
+}/oauth2/authorization/google`;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -96,7 +99,47 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
+          <div className="mt-5">
+  <div className="relative flex items-center">
+    <div className="flex-grow border-t border-slate-200" />
+    <span className="mx-3 text-sm text-slate-400">
+      OR
+    </span>
+    <div className="flex-grow border-t border-slate-200" />
+  </div>
 
+  <a
+    href={googleLoginUrl}
+    className="mt-5 flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white p-3 font-medium text-slate-700 transition hover:bg-slate-50"
+  >
+    <svg
+      viewBox="0 0 48 48"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"
+        transform="translate(0 4)"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.25 5.48-4.73 7.18l7.98 6.19c4.66-4.3 7.34-10.63 7.34-17.84Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.12.75-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19Z"
+        transform="translate(0 0)"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.47 0 11.91-2.13 15.88-5.78l-7.98-6.19c-2.22 1.5-5.07 2.39-7.9 2.39-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z"
+      />
+    </svg>
+
+    Continue with Google
+  </a>
+</div>
         <p className="mt-6 text-center text-sm text-slate-600">
           Don't have an account?{" "}
           <Link href="/register" className="font-semibold text-blue-600">
