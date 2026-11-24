@@ -17,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import in.strikes.devTrack.security.GoogleOAuthSuccessHandler;
 import in.strikes.devTrack.security.JwtAuthenticationFilter;
+import in.strikes.devTrack.service.GitHubOAuth2UserService;
 import in.strikes.devTrack.service.JwtService;
 
 @Configuration
@@ -37,7 +38,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         JwtAuthenticationFilter jwtAuthenticationFilter,
-        GoogleOAuthSuccessHandler googleOAuthSuccessHandler)
+        GoogleOAuthSuccessHandler googleOAuthSuccessHandler,
+        GitHubOAuth2UserService gitHubOAuth2UserService)
         throws Exception {
 
         http.cors(cors -> {})
@@ -59,7 +61,11 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             ).oauth2Login(oauth -> oauth
-    .successHandler(googleOAuthSuccessHandler))
+    .userInfoEndpoint(userInfo -> userInfo
+        .userService(gitHubOAuth2UserService)
+    )
+    .successHandler(googleOAuthSuccessHandler)
+)
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
